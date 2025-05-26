@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThirdwebProvider } from "thirdweb/react";
+import Navbar from "./components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "thirdweb SDK + Next starter",
+  title: "DINIP",
   description:
-    "Starter template for using thirdweb SDK with Next.js App router",
+    "Digital Nomad Passport",
 };
 
 export default function RootLayout({
@@ -18,8 +19,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ThirdwebProvider>{children}</ThirdwebProvider>
+      <body className={`${inter.className} pt-16`}>
+        <ThirdwebProvider>
+          <Navbar />
+          {children}
+        </ThirdwebProvider>
       </body>
     </html>
   );

@@ -9,7 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ethersproject/providers": "^5.8.0",
+    "@thirdweb-dev/react": "^4.9.4",
+    "@web3-storage/w3up-client": "^17.3.0",
+    "did-jwt-vc": "^4.0.13",
+    "did-resolver": "^4.1.0",
+    "dotenv": "^16.5.0",
+    "ethers": "^6.14.1",
+    "ethr-did": "^3.0.35",
+    "ethr-did-resolver": "^11.0.3",
     "next": "14.1.0",
+    "qrcode.react": "^4.2.0",
     "react": "^18.3",
     "react-dom": "^18.3",
     "thirdweb": "^5"
@@ -21,6 +31,7 @@
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
+    "hardhat": "^2.24.0",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
