@@ -1,10 +1,17 @@
 import { JsonRpcProvider, Wallet, Contract, isAddress, keccak256, toUtf8Bytes } from 'ethers';
 import { EthrDID } from 'ethr-did';
 import { createVerifiableCredentialJwt, Issuer } from 'did-jwt-vc';
+import pinataSDK from '@pinata/sdk';
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const RPC_URL = process.env.RPC_URL;
 const ANCHOR_CONTRACT = process.env.ANCHOR_CONTRACT;
+const PINATA_API_KEY = process.env.PINATA_API_KEY;
+const PINATA_SECRET_API_KEY = process.env.PINATA_SECRET_API_KEY;
+const PINATA_GATEWAY_URL = process.env.PINATA_GATEWAY_URL;
+
+// Initialize Pinata client
+const pinata = new pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY);
 
 /**
  * Issues and anchors a Verifiable Credential for a user.
@@ -60,20 +67,50 @@ export async function issueAndAnchorVC(userWalletAddress: string) {
   const vcJwt = await createVerifiableCredentialJwt(credentialPayload, issuer);
   console.log("✅ JWT VC:", vcJwt);
 
-  // --- Step 3: Hash the VC
-  const hash = keccak256(toUtf8Bytes(vcJwt));
-  console.log("🧾 Hash of VC:", hash);
+  // --- Step 3: Upload VC to IPFS via Pinata
+  const pinataOptions = {
+    pinataMetadata: {
+      name: "DigitalNomadPassportVC",
+      keyvalues: {
+        type: "verifiable-credential" ,
+        holder: userWalletAddress 
+      } as any
+    },
+    pinataOptions: {
+      cidVersion: 1 as 0 | 1
+    }
+  };
 
-  // --- Step 4: Call Anchor.sol to store the hash
-  const abi = [
-    "function storeHash(bytes32 hash) public",
-    "function isAnchored(bytes32 hash) public view returns (bool)"
-  ];
-  const contract = new Contract(ANCHOR_CONTRACT!, abi, wallet);
+  try {
+    const result = await pinata.pinJSONToIPFS({ vc: vcJwt }, pinataOptions);
+    const ipfsCid = result.IpfsHash;
+    const ipfsUrl = `https://${PINATA_GATEWAY_URL}/ipfs/${ipfsCid}`;
+    console.log("📤 VC uploaded to IPFS via Pinata:", ipfsUrl);
 
-  const tx = await contract.storeHash(hash);
-  await tx.wait();
-  console.log("✅ VC anchored on-chain at tx:", tx.hash);
+    // --- Step 4: Hash the VC
+    const hash = keccak256(toUtf8Bytes(vcJwt));
+    console.log("🧾 Hash of VC:", hash);
 
-  return { vcJwt, hash, txHash: tx.hash };
+    // --- Step 5: Call Anchor.sol to store the hash
+    const abi = [
+      "function storeHash(bytes32 hash) public",
+      "function isAnchored(bytes32 hash) public view returns (bool)"
+    ];
+    const contract = new Contract(ANCHOR_CONTRACT!, abi, wallet);
+
+    const tx = await contract.storeHash(hash);
+    await tx.wait();
+    console.log("✅ VC anchored on-chain at tx:", tx.hash);
+
+    return { 
+      vcJwt, 
+      hash, 
+      txHash: tx.hash,
+      ipfsCid,
+      ipfsUrl
+    };
+  } catch (error) {
+    console.error("Error uploading to IPFS:", error);
+    throw new Error("Failed to upload VC to IPFS");
+  }
 } 
