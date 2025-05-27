@@ -21,6 +21,9 @@ export default function IssuerNavbar() {
             <NavLink href="/issue-passport" pathname={pathname}>
               Issue Passport
             </NavLink>
+            <NavLink href="/add-issuer" pathname={pathname}>
+              Add Issuer
+            </NavLink>
             <NavLink href="/manage-credentials" pathname={pathname}>
               Manage Credentials
             </NavLink>
