@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { ConnectButton } from "thirdweb/react";
+import Link from "next/link";
 import thirdwebIcon from "@public/logo2.svg";
-import { client } from "./client";
 
 export default function Home() {
   return (
@@ -12,17 +11,28 @@ export default function Home() {
         <div className="backdrop-blur-sm bg-white/5 rounded-3xl p-8 shadow-2xl border border-white/10">
           <Header />
 
-          <div className="flex justify-center mb-16">
-            <ConnectButton
-              client={client}
-              appMetadata={{
-                name: "Example App",
-                url: "https://example.com",
-              }}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+            <LoginCard
+              title="User Portal"
+              description="Access and manage your digital passport credentials"
+              href="/user"
+              icon="👤"
+            />
+            <LoginCard
+              title="Verifier Portal"
+              description="Verify and validate digital passport credentials"
+              href="/verifier"
+              icon="🔍"
+            />
+            <LoginCard
+              title="Issuer Portal"
+              description="Manage and issue digital passports with secure verification"
+              href="/issuer"
+              icon="📜"
             />
           </div>
 
-          <ThirdwebResources />
+          <AboutSection />
         </div>
       </div>
     </main>
@@ -55,47 +65,45 @@ function Header() {
   );
 }
 
-function ThirdwebResources() {
+function LoginCard({ title, description, href, icon }: { title: string; description: string; href: string; icon: string }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-3 justify-center">
-      <ArticleCard
-        title="Documentation"
-        href="https://portal.thirdweb.com/typescript/v5"
-        description="Comprehensive guides and API references"
-      />
-
-      <ArticleCard
-        title="Components"
-        href="https://portal.thirdweb.com/typescript/v5/react"
-        description="Explore our React components and hooks"
-      />
-
-      <ArticleCard
-        title="Dashboard"
-        href="https://thirdweb.com/dashboard"
-        description="Manage your digital identity and credentials"
-      />
-    </div>
+    <Link
+      href={href}
+      className="group p-6 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200"
+    >
+      <div className="text-4xl mb-4">{icon}</div>
+      <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-blue-400 transition-colors">
+        {title}
+      </h3>
+      <p className="text-slate-400">{description}</p>
+    </Link>
   );
 }
 
-function ArticleCard(props: {
-  title: string;
-  href: string;
-  description: string;
-}) {
+function AboutSection() {
   return (
-    <a
-      href={props.href + "?utm_source=next-template"}
-      target="_blank"
-      className="group flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.02]"
-    >
-      <article>
-        <h2 className="text-xl font-semibold mb-3 text-blue-400 group-hover:text-blue-300 transition-colors">
-          {props.title}
-        </h2>
-        <p className="text-slate-300">{props.description}</p>
-      </article>
-    </a>
+    <section className="mt-16 pt-16 border-t border-white/10">
+      <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent">
+        About DiniP
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-white">What is DiniP?</h3>
+          <p className="text-slate-300">
+            DiniP (Digital Nomad Passport) is a revolutionary platform that leverages blockchain technology
+            to provide secure, verifiable digital identities for digital nomads and remote workers.
+          </p>
+        </div>
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-white">Key Features</h3>
+          <ul className="text-slate-300 space-y-2">
+            <li>• Secure digital identity verification</li>
+            <li>• Blockchain-based credential management</li>
+            <li>• Decentralized verification system</li>
+            <li>• User-friendly interface for all stakeholders</li>
+          </ul>
+        </div>
+      </div>
+    </section>
   );
 }

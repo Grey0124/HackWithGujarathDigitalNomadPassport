@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function Navbar() {
+export default function UserNavbar() {
   const pathname = usePathname();
 
   return (
@@ -11,21 +11,21 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link 
-            href="/" 
+            href="/user" 
             className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
           >
-            DiniP
+            User Portal
           </Link>
           
           <div className="flex items-center space-x-1">
-            <NavLink href="/" pathname={pathname}>
-              Home
+            <NavLink href="/my-passport" pathname={pathname}>
+              My Passport
             </NavLink>
-            <NavLink href="/about" pathname={pathname}>
-              About
+            <NavLink href="/verification-history" pathname={pathname}>
+              Verification History
             </NavLink>
-            <NavLink href="/project-description" pathname={pathname}>
-              Project Description
+            <NavLink href="/user-settings" pathname={pathname}>
+              Settings
             </NavLink>
           </div>
         </div>
