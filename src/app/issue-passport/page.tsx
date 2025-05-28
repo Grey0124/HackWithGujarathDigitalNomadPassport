@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { ethers } from "ethers";
 import { useRouter } from "next/navigation";
@@ -125,12 +125,6 @@ export default function IssuePassportPage() {
   const account = useActiveAccount();
   const { mutateAsync: sendTransaction } = useSendTransaction();
 
-  useEffect(() => {
-    if (account) {
-      checkAuthorization();
-    }
-  }, [account]);
-
   const getContract = () => {
     // Create a provider with proper network configuration
     const provider = new ethers.providers.JsonRpcProvider(RPC_URL, {
@@ -142,7 +136,30 @@ export default function IssuePassportPage() {
     return new ethers.Contract(CONTRACT_ADDRESS, AnchorABI.abi, provider);
   };
 
-  const checkAuthorization = async () => {
+  const fetchApplications = useCallback(async () => {
+    try {
+      const contract = getContract();
+      const count = await contract.getApplicationsCount();
+      const apps: Application[] = [];
+
+      for (let i = 0; i < count; i++) {
+        const app = await contract.getApplication(i);
+        apps.push({
+          user: app.user,
+          docCids: app.docCids,
+          timestamp: app.timestamp.toNumber(),
+          processed: app.processed
+        });
+      }
+
+      setApplications(apps);
+    } catch (err: any) {
+      console.error("Fetch applications error:", err);
+      setError("Failed to fetch applications: " + err.message);
+    }
+  }, [getContract]);
+
+  const checkAuthorization = useCallback(async () => {
     try {
       if (!account?.address) return;
 
@@ -166,30 +183,13 @@ export default function IssuePassportPage() {
       console.error("Authorization check error:", err);
       setError("Failed to check authorization: " + err.message);
     }
-  };
+  }, [account?.address, getContract, router, fetchApplications]);
 
-  const fetchApplications = async () => {
-    try {
-      const contract = getContract();
-      const count = await contract.getApplicationsCount();
-      const apps: Application[] = [];
-
-      for (let i = 0; i < count; i++) {
-        const app = await contract.getApplication(i);
-        apps.push({
-          user: app.user,
-          docCids: app.docCids,
-          timestamp: app.timestamp.toNumber(),
-          processed: app.processed
-        });
-      }
-
-      setApplications(apps);
-    } catch (err: any) {
-      console.error("Fetch applications error:", err);
-      setError("Failed to fetch applications: " + err.message);
+  useEffect(() => {
+    if (account) {
+      checkAuthorization();
     }
-  };
+  }, [account, checkAuthorization]);
 
   const handleApprove = async (appId: number) => {
     if (!account) {

@@ -21,6 +21,9 @@ export default function UserNavbar() {
             <NavLink href="/my-passport" pathname={pathname}>
               My Passport
             </NavLink>
+            <NavLink href="/passport-status" pathname={pathname}>
+              Passport Status
+            </NavLink>
             <NavLink href="/did-test" pathname={pathname}>
               Get-DID
             </NavLink>
