@@ -1,14 +1,15 @@
-import { JsonRpcProvider, Wallet, Contract, isAddress, keccak256, toUtf8Bytes } from 'ethers';
+import { Wallet, Contract, utils } from 'ethers';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { EthrDID } from 'ethr-did';
 import { createVerifiableCredentialJwt, Issuer } from 'did-jwt-vc';
 import pinataSDK from '@pinata/sdk';
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const RPC_URL = process.env.RPC_URL;
-const ANCHOR_CONTRACT = process.env.ANCHOR_CONTRACT;
-const PINATA_API_KEY = process.env.PINATA_API_KEY;
-const PINATA_SECRET_API_KEY = process.env.PINATA_SECRET_API_KEY;
-const PINATA_GATEWAY_URL = process.env.PINATA_GATEWAY_URL;
+const ANCHOR_CONTRACT = process.env.NEXT_PUBLIC_NEW_ANCHOR_CONTRACT_FINAL;
+const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY;
+const PINATA_SECRET_API_KEY = process.env.NEXT_PUBLIC_PINATA_SECRET_API_KEY;
+const PINATA_GATEWAY_URL = process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL;
 
 // Initialize Pinata client
 const pinata = new pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY);
@@ -18,7 +19,7 @@ const pinata = new pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY);
  * @param {string} userWalletAddress - The Ethereum address of the credential holder
  */
 export async function issueAndAnchorVC(userWalletAddress: string) {
-  if (!isAddress(userWalletAddress)) {
+  if (!utils.isAddress(userWalletAddress)) {
     throw new Error("Invalid Ethereum address provided");
   }
 
@@ -88,7 +89,7 @@ export async function issueAndAnchorVC(userWalletAddress: string) {
     console.log("📤 VC uploaded to IPFS via Pinata:", ipfsUrl);
 
     // --- Step 4: Hash the VC
-    const hash = keccak256(toUtf8Bytes(vcJwt));
+    const hash = utils.keccak256(utils.toUtf8Bytes(vcJwt));
     console.log("🧾 Hash of VC:", hash);
 
     // --- Step 5: Call Anchor.sol to store the hash

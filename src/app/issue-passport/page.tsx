@@ -1,27 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Web3Provider } from "@ethersproject/providers";
+import { useState } from "react";
+import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 
 export default function IssuePassportPage() {
-  const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function connectWallet() {
-      const provider = new Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-      const address = await signer.getAddress();
-      setAddress(address);
-    }
-    connectWallet();
-  }, []);
+  const account = useActiveAccount();
+  const { mutateAsync: sendTransaction } = useSendTransaction();
 
   const handleIssue = async () => {
-    if (!address) {
+    if (!account) {
       setError("Please connect your wallet first");
       return;
     }
@@ -34,7 +24,7 @@ export default function IssuePassportPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address: account.address }),
       });
 
       const data = await response.json();
@@ -58,7 +48,7 @@ export default function IssuePassportPage() {
             Issue Digital Nomad Passport
           </h1>
       
-          {!address ? (
+          {!account ? (
             <div className="text-center py-12">
               <p className="text-xl text-slate-300">Please connect your wallet to continue</p>
             </div>
@@ -66,7 +56,7 @@ export default function IssuePassportPage() {
             <div className="space-y-6">
               <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
                 <p className="text-slate-300">
-                  Connected Address: <span className="text-blue-400 font-mono">{address}</span>
+                  Connected Address: <span className="text-blue-400 font-mono">{account.address}</span>
                 </p>
               </div>
               

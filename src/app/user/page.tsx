@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { ConnectButton } from "thirdweb/react";
 import thirdwebIcon from "@public/logo2.svg";
-import { client } from "../client";
 import UserNavbar from "../components/UserNavbar";
+import { client } from "@/app/client";
 
 export default function UserPage() {
   return (
@@ -16,13 +16,7 @@ export default function UserPage() {
             <Header />
 
             <div className="flex justify-center mb-16">
-              <ConnectButton
-                client={client}
-                appMetadata={{
-                  name: "User Portal",
-                  url: "https://example.com",
-                }}
-              />
+              <ConnectButton client={client} />
             </div>
           </div>
         </div>

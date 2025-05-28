@@ -16,13 +16,7 @@ export default function VerifierPage() {
             <Header />
 
             <div className="flex justify-center mb-16">
-              <ConnectButton
-                client={client}
-                appMetadata={{
-                  name: "Verifier Portal",
-                  url: "https://example.com",
-                }}
-              />
+              <ConnectButton client={client} />
             </div>
           </div>
         </div>

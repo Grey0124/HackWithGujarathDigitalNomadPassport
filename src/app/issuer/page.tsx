@@ -16,13 +16,7 @@ export default function IssuerPage() {
             <Header />
 
             <div className="flex justify-center mb-16">
-              <ConnectButton
-                client={client}
-                appMetadata={{
-                  name: "Issuer Portal",
-                  url: "https://example.com",
-                }}
-              />
+              <ConnectButton client={client} />
             </div>
           </div>
         </div>
