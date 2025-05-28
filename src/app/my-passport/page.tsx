@@ -82,10 +82,8 @@ export default function MyPassportPage() {
       const uploadPromises = documents.map(doc => uploadToPinata(doc.file));
       const uploadResults = await Promise.all(uploadPromises);
 
-      // Compute document hashes
-      const docHashes = uploadResults.map(result => 
-        utils.keccak256(utils.toUtf8Bytes(result.cid))
-      );
+      // Get CIDs from upload results
+      const docCids = uploadResults.map(result => result.cid);
 
       // Create contract interface
       const contractInterface = new ethers.utils.Interface(AnchorABI.abi);
@@ -93,11 +91,11 @@ export default function MyPassportPage() {
       // Call smart contract
       const tx = await sendTransaction({
         to: process.env.NEXT_PUBLIC_NEW_ANCHOR_CONTRACT_FINAL as string,
-        data: contractInterface.encodeFunctionData("applyForPassport", [docHashes]) as `0x${string}`,
+        data: contractInterface.encodeFunctionData("applyForPassport", [docCids]) as `0x${string}`,
         client,
         chain: {
           id: 11155111, // Sepolia chain ID
-          rpc: "https://eth-sepolia.g.alchemy.com/v2/demo"
+          rpc: "https://eth-sepolia.g.alchemy.com/v2/dnbqygHxhAg5Vbvt3LRA8xYeQ5T80LDW"
         }
       });
 

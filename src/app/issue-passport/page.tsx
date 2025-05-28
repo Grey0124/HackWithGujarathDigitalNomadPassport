@@ -10,14 +10,109 @@ import { client } from "@/app/client";
 
 interface Application {
   user: string;
-  docHashes: string[];
+  docCids: string[];
   timestamp: number;
   processed: boolean;
+}
+
+interface Document {
+  cid: string;
+  url: string;
+  type: string;
+  error?: string;
 }
 
 // Use Alchemy's public RPC URL for Sepolia
 const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/dnbqygHxhAg5Vbvt3LRA8xYeQ5T80LDW";
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NEW_ANCHOR_CONTRACT_FINAL as string;
+const PINATA_GATEWAY = process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL as string;
+
+// Helper function to convert byte array to CID
+const bytesToCID = (bytes: number[] | number[][]): string => {
+  try {
+    if (!bytes || bytes.length === 0) {
+      throw new Error('Empty bytes array');
+    }
+
+    // Convert to Uint8Array first
+    let uint8Array: Uint8Array;
+    if (Array.isArray(bytes[0])) {
+      // Handle nested array
+      const flatArray = (bytes as number[][]).reduce((acc, curr) => {
+        if (!Array.isArray(curr)) {
+          throw new Error('Invalid nested array structure');
+        }
+        return acc.concat(curr);
+      }, [] as number[]);
+      uint8Array = new Uint8Array(flatArray);
+    } else {
+      // Handle single array
+      if (!Array.isArray(bytes)) {
+        throw new Error('Invalid bytes format');
+      }
+      uint8Array = new Uint8Array(bytes as number[]);
+    }
+
+    // Convert to hex string first
+    const hex = ethers.utils.hexlify(uint8Array);
+    if (!hex || hex === '0x') {
+      throw new Error('Invalid hex conversion result');
+    }
+
+    // Convert hex to CID format (Qm...)
+    // Remove '0x' prefix and ensure it's a valid CID
+    const hash = hex.slice(2);
+    return `Qm${hash}`;
+  } catch (error: any) {
+    console.error('Error converting bytes to CID:', error);
+    throw new Error(`Failed to convert bytes to CID: ${error?.message || 'Unknown error'}`);
+  }
+};
+
+// Helper function to fetch document from Pinata
+const fetchFromPinata = async (hash: string) => {
+  try {
+    if (!hash || hash === '0x') {
+      throw new Error('Invalid hash provided');
+    }
+
+    // First try to pin the content
+    const pinResponse = await fetch('https://api.pinata.cloud/pinning/pinByHash', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`
+      },
+      body: JSON.stringify({
+        hashToPin: hash,
+        pinataOptions: {
+          cidVersion: 0
+        }
+      })
+    });
+
+    if (!pinResponse.ok) {
+      const errorData = await pinResponse.json();
+      throw new Error(`Failed to pin document: ${errorData.error || pinResponse.statusText}`);
+    }
+
+    // Try to fetch the content
+    const response = await fetch(`https://${PINATA_GATEWAY}/ipfs/${hash}`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch document: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching from Pinata:', error);
+    throw error;
+  }
+};
 
 export default function IssuePassportPage() {
   const router = useRouter();
@@ -25,6 +120,8 @@ export default function IssuePassportPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<Document[]>([]);
+  const [showDocuments, setShowDocuments] = useState(false);
   const account = useActiveAccount();
   const { mutateAsync: sendTransaction } = useSendTransaction();
 
@@ -81,7 +178,7 @@ export default function IssuePassportPage() {
         const app = await contract.getApplication(i);
         apps.push({
           user: app.user,
-          docHashes: app.docHashes,
+          docCids: app.docCids,
           timestamp: app.timestamp.toNumber(),
           processed: app.processed
         });
@@ -136,9 +233,20 @@ export default function IssuePassportPage() {
     console.log("Rejecting application:", appId);
   };
 
-  const viewDocuments = (docHashes: string[]) => {
-    // TODO: Implement document viewing logic
-    console.log("Viewing documents:", docHashes);
+  const viewDocuments = (docCids: string[]) => {
+    try {
+      const documents: Document[] = docCids.map(cid => ({
+        cid,
+        url: `https://${PINATA_GATEWAY}/ipfs/${cid}`,
+        type: 'Document'
+      }));
+
+      setSelectedDocuments(documents);
+      setShowDocuments(true);
+    } catch (err: any) {
+      console.error("Error viewing documents:", err);
+      setError("Failed to load documents: " + err.message);
+    }
   };
 
   return (
@@ -188,11 +296,19 @@ export default function IssuePassportPage() {
                               {app.processed ? 'Processed' : 'Pending'}
                             </span>
                           </p>
+                          <p className="text-slate-300 mt-2">
+                            <span className="text-blue-400">Document CIDs:</span>{" "}
+                            <span className="font-mono text-white text-sm">
+                              {app.docCids.map((cid, i) => (
+                                <span key={i} className="block mt-1">{cid}</span>
+                              ))}
+                            </span>
+                          </p>
                         </div>
                         {!app.processed && (
                           <div className="flex space-x-3">
                             <button
-                              onClick={() => viewDocuments(app.docHashes)}
+                              onClick={() => viewDocuments(app.docCids)}
                               className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors"
                             >
                               View Documents
@@ -227,6 +343,60 @@ export default function IssuePassportPage() {
             )}
           </div>
         </div>
+
+        {/* Document Viewer Modal */}
+        {showDocuments && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-900 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-white">Document Viewer</h2>
+                <button
+                  onClick={() => setShowDocuments(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {selectedDocuments.map((doc, index) => (
+                  <div key={index} className="bg-white/5 rounded-xl p-4">
+                    <p className="text-slate-300 mb-2">
+                      <span className="text-blue-400">Document Type:</span> {doc.type}
+                    </p>
+                    <p className="text-slate-300 mb-2">
+                      <span className="text-blue-400">Document CID:</span>{" "}
+                      <span className="font-mono text-sm break-all">{doc.cid}</span>
+                    </p>
+                    {doc.error && (
+                      <p className="text-red-400 text-sm mb-2">{doc.error}</p>
+                    )}
+                    {!doc.error && (
+                      <div className="mt-4 flex space-x-4">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          View Document →
+                        </a>
+                        <a
+                          href={`https://ipfs.io/ipfs/${doc.cid}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          View on IPFS →
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </>
   );
