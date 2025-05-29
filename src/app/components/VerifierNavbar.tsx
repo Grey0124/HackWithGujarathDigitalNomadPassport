@@ -61,15 +61,7 @@ export default function VerifierNavbar() {
                 <NavLink href="/verify-passport" pathname={pathname}>
                   Verify Passport
                 </NavLink>
-                <NavLink href="/verifier-settings" pathname={pathname}>
-                  Settings
-                </NavLink>
               </>
-            )}
-            {isOwner && (
-              <NavLink href="/add-verifier" pathname={pathname}>
-                Manage Verifiers
-              </NavLink>
             )}
           </div>
 

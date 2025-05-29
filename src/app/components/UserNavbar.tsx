@@ -32,9 +32,6 @@ export default function UserNavbar() {
             <NavLink href="/did-test" pathname={pathname}>
               Get-DID
             </NavLink>
-            <NavLink href="/user-settings" pathname={pathname}>
-              Settings
-            </NavLink>
           </div>
 
           <div className="flex items-center">

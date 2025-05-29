@@ -23,17 +23,18 @@ export default function IssuerNavbar() {
 
   const checkIssuerStatus = async () => {
     try {
+      if (!account?.address) return;
+
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, AnchorABI.abi, provider);
       
       // Check if user is an authorized issuer
-      const isAuthorized = await contract.authorizedIssuers(account?.address);
-      const isSuspended = await contract.suspendedIssuers(account?.address);
-      setIsAuthorizedIssuer(isAuthorized && !isSuspended);
-
-      // Check if user is the contract owner
+      const isAuthorized = await contract.authorizedIssuers(account.address);
+      const isSuspended = await contract.suspendedIssuers(account.address);
       const owner = await contract.owner();
-      setIsOwner(owner.toLowerCase() === account?.address.toLowerCase());
+      
+      setIsAuthorizedIssuer(isAuthorized && !isSuspended);
+      setIsOwner(owner.toLowerCase() === account.address.toLowerCase());
     } catch (err) {
       console.error("Error checking issuer status:", err);
       setIsAuthorizedIssuer(false);
@@ -67,9 +68,14 @@ export default function IssuerNavbar() {
               </>
             )}
             {isOwner && (
-              <NavLink href="/add-issuer" pathname={pathname}>
-                Manage Issuers
-              </NavLink>
+              <>
+                <NavLink href="/add-issuer" pathname={pathname}>
+                  Manage Issuers
+                </NavLink>
+                <NavLink href="/add-verifier" pathname={pathname}>
+                  Manage Verifiers
+                </NavLink>
+              </>
             )}
           </div>
 
