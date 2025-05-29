@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { ethers } from "ethers";
-import UserNavbar from "../components/UserNavbar";
+import VerifierNavbar from "../components/VerifierNavbar";
 import AnchorABI from "@/contracts/Anchor.json";
 
 // Use Alchemy's public RPC URL for Sepolia
@@ -22,9 +22,9 @@ export default function VerifyPassportPage() {
   const account = useActiveAccount();
   const [passportHash, setPassportHash] = useState("");
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthorizedVerifier, setIsAuthorizedVerifier] = useState<boolean | null>(null);
+  const [isAuthorizedVerifier, setIsAuthorizedVerifier] = useState(false);
 
   const getContract = (withSigner = false) => {
     const provider = new ethers.providers.JsonRpcProvider(RPC_URL, {
@@ -41,50 +41,55 @@ export default function VerifyPassportPage() {
     return new ethers.Contract(CONTRACT_ADDRESS, AnchorABI.abi, provider);
   };
 
-  const checkVerifierStatus = async () => {
-    if (!account) {
-      setIsAuthorizedVerifier(false);
-      return;
+  useEffect(() => {
+    if (account) {
+      checkVerifierStatus();
     }
+  }, [account]);
 
+  const checkVerifierStatus = async () => {
     try {
+      if (!account?.address) {
+        setError("No wallet connected");
+        return;
+      }
+
       const contract = getContract();
+      
+      // Check if user is an authorized verifier
       const isAuthorized = await contract.authorizedVerifiers(account.address);
+      console.log("Is authorized verifier:", isAuthorized, "Address:", account.address);
+      
       setIsAuthorizedVerifier(isAuthorized);
-    } catch (err) {
+
+      if (!isAuthorized) {
+        setError("You are not an authorized verifier");
+      }
+    } catch (err: any) {
       console.error("Error checking verifier status:", err);
-      setIsAuthorizedVerifier(false);
+      setError("Failed to verify status: " + err.message);
     }
   };
 
-  useEffect(() => {
-    checkVerifierStatus();
-  }, [account]);
-
-  const verifyPassport = async () => {
-    if (!account) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (!isAuthorizedVerifier) {
-      setError("You are not an authorized verifier");
-      return;
-    }
-
-    if (!passportHash) {
-      setError("Please enter a passport hash");
-      return;
-    }
-
-    setLoading(true);
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
     setError(null);
     setVerificationResult(null);
 
     try {
-      const contract = getContract(true);
-      const result = await contract.verifyPassport(passportHash);
+      if (!account) {
+        throw new Error("Please connect your wallet first");
+      }
 
+      if (!isAuthorizedVerifier) {
+        throw new Error("You are not an authorized verifier");
+      }
+
+      const contract = getContract(true);
+
+      const result = await contract.verifyPassport(passportHash);
+      
       setVerificationResult({
         isAnchored: result.isAnchored_,
         isRevoked: result.isRevoked_,
@@ -93,16 +98,16 @@ export default function VerifyPassportPage() {
         issuedAt: result.issuedAt_.toNumber()
       });
     } catch (err: any) {
-      console.error("Verification error:", err);
+      console.error("Error verifying passport:", err);
       setError("Failed to verify passport: " + err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <>
-      <UserNavbar />
+      <VerifierNavbar />
       <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="container max-w-screen-lg mx-auto px-4 py-16">
           <div className="backdrop-blur-sm bg-white/5 rounded-3xl p-8 shadow-2xl border border-white/10">
@@ -114,87 +119,88 @@ export default function VerifyPassportPage() {
               <div className="text-center text-slate-300">
                 Please connect your wallet to continue
               </div>
-            ) : isAuthorizedVerifier === false ? (
+            ) : !isAuthorizedVerifier ? (
               <div className="text-center text-red-400">
                 You are not an authorized verifier
               </div>
             ) : (
-              <div className="max-w-2xl mx-auto space-y-6">
-                <div className="space-y-2">
-                  <label htmlFor="passportHash" className="block text-sm font-medium text-slate-300">
-                    Passport Hash
-                  </label>
-                  <input
-                    type="text"
-                    id="passportHash"
-                    value={passportHash}
-                    onChange={(e) => setPassportHash(e.target.value)}
-                    placeholder="Enter passport hash to verify"
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
+              <>
                 {error && (
-                  <div className="bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-300 p-4 rounded-xl">
+                  <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
                     {error}
                   </div>
                 )}
 
-                <button
-                  onClick={verifyPassport}
-                  disabled={loading}
-                  className={`
-                    w-full px-6 py-3 rounded-lg font-medium text-white
-                    ${loading 
-                      ? 'bg-blue-500/50 cursor-not-allowed' 
-                      : 'bg-blue-500 hover:bg-blue-600'
-                    }
-                    transition-colors duration-200
-                  `}
-                >
-                  {loading ? 'Verifying...' : 'Verify Passport'}
-                </button>
+                <form onSubmit={handleVerify} className="max-w-2xl mx-auto space-y-6">
+                  <div className="space-y-2">
+                    <label htmlFor="passportHash" className="block text-sm font-medium text-slate-300">
+                      Passport Hash
+                    </label>
+                    <input
+                      type="text"
+                      id="passportHash"
+                      value={passportHash}
+                      onChange={(e) => setPassportHash(e.target.value)}
+                      placeholder="Enter passport hash"
+                      className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className={`
+                      w-full px-6 py-3 rounded-lg font-medium text-white
+                      ${isLoading 
+                        ? 'bg-blue-500/50 cursor-not-allowed' 
+                        : 'bg-blue-500 hover:bg-blue-600'
+                      }
+                      transition-colors duration-200
+                    `}
+                  >
+                    {isLoading ? 'Verifying...' : 'Verify Passport'}
+                  </button>
+                </form>
 
                 {verificationResult && (
-                  <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10 space-y-4">
+                  <div className="mt-8 p-6 rounded-lg bg-white/5 border border-white/10">
                     <h2 className="text-xl font-semibold text-white mb-4">Verification Result</h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-slate-400">Status</p>
-                        <p className={`text-lg font-medium ${verificationResult.isAnchored && !verificationResult.isRevoked ? 'text-green-400' : 'text-red-400'}`}>
-                          {verificationResult.isAnchored && !verificationResult.isRevoked ? 'Valid' : 'Invalid'}
-                        </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <span className="text-slate-300 w-32">Status:</span>
+                        <span className={`font-medium ${
+                          verificationResult.isAnchored && !verificationResult.isRevoked
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}>
+                          {verificationResult.isAnchored && !verificationResult.isRevoked
+                            ? 'Valid'
+                            : verificationResult.isRevoked
+                            ? 'Revoked'
+                            : 'Invalid'}
+                        </span>
                       </div>
-
-                      <div>
-                        <p className="text-slate-400">Type</p>
-                        <p className="text-lg font-medium text-white">{verificationResult.pType}</p>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <p className="text-slate-400">Issuer</p>
-                        <p className="text-lg font-medium text-white font-mono break-all">
-                          {verificationResult.issuer}
-                        </p>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <p className="text-slate-400">Issued At</p>
-                        <p className="text-lg font-medium text-white">
-                          {new Date(verificationResult.issuedAt * 1000).toLocaleString()}
-                        </p>
-                      </div>
+                      {verificationResult.isAnchored && (
+                        <>
+                          <div className="flex items-center">
+                            <span className="text-slate-300 w-32">Type:</span>
+                            <span className="text-white">{verificationResult.pType}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-slate-300 w-32">Issuer:</span>
+                            <span className="text-white">{verificationResult.issuer}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-slate-300 w-32">Issued At:</span>
+                            <span className="text-white">{new Date(verificationResult.issuedAt * 1000).toLocaleString()}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
-
-                    {verificationResult.isRevoked && (
-                      <div className="mt-4 p-4 bg-red-500/10 rounded-lg border border-red-500/20">
-                        <p className="text-red-400 font-medium">This passport has been revoked</p>
-                      </div>
-                    )}
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>
