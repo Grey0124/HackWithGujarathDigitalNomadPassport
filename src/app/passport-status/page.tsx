@@ -8,6 +8,9 @@ import UserNavbar from "../components/UserNavbar";
 import AnchorABI from "@/contracts/Anchor.json";
 import { jsPDF } from "jspdf";
 import domtoimage from 'dom-to-image';
+import { QRCodeSVG } from 'qrcode.react';
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
 
 interface PassportInfo {
   hash: string;
@@ -185,17 +188,17 @@ export default function PassportStatusPage() {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.fillText('Issuer:', leftColumn, y);
       ctx.fillStyle = 'white';
-      ctx.fillText(passportInfo.issuer.slice(0, 8) + '...' + passportInfo.issuer.slice(-6), leftColumn + 80, y);
-
-      // Right column
-      y = 140;
+      ctx.fillText(passportInfo.issuer, leftColumn + 80, y);
+      y += 40;
 
       // Passport Hash
       ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.fillText('Hash:', rightColumn, y);
+      ctx.fillText('Hash:', leftColumn, y);
       ctx.fillStyle = 'white';
-      ctx.fillText(passportInfo.hash.slice(0, 8) + '...' + passportInfo.hash.slice(-6), rightColumn + 80, y);
-      y += 40;
+      ctx.fillText(passportInfo.hash, leftColumn + 80, y);
+
+      // Right column
+      y = 140;
 
       // Status
       ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
@@ -203,33 +206,58 @@ export default function PassportStatusPage() {
       ctx.fillStyle = passportInfo.isRevoked ? '#ef4444' : '#22c55e';
       ctx.fillText(passportInfo.isRevoked ? 'Revoked' : 'Active', rightColumn + 80, y);
 
-      // Draw verification section at bottom
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fillRect(40, canvas.height - 100, canvas.width - 80, 60);
-      
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.font = '14px Arial';
-      ctx.fillText('Verification', 60, canvas.height - 70);
-      ctx.fillText('Scan to verify authenticity', 60, canvas.height - 50);
+      // Draw QR Code
+      const qrData = JSON.stringify({
+        hash: passportInfo.hash,
+        issuer: passportInfo.issuer,
+        issueDate: new Date(passportInfo.issuedAt * 1000).toISOString(),
+        status: passportInfo.isRevoked ? 'Revoked' : 'Active',
+        type: passportInfo.type
+      });
 
-      // Convert canvas to image
-      const imgData = canvas.toDataURL('image/png');
+      // Create QR code element
+      const qrContainer = document.createElement('div');
+      qrContainer.style.position = 'absolute';
+      qrContainer.style.left = '-9999px';
+      document.body.appendChild(qrContainer);
 
-      // Create PDF
+      // Create QR code component
+      const qrCode = document.createElement('div');
+      qrContainer.appendChild(qrCode);
+      const qrComponent = createElement(QRCodeSVG, {
+        value: qrData,
+        size: 150,
+        level: 'H',
+        includeMargin: true,
+        className: 'rounded-xl'
+      });
+      qrCode.innerHTML = renderToString(qrComponent);
+
+      // Render QR code to canvas
+      const qrCanvas = await domtoimage.toPng(qrCode);
+      const qrImage = new Image();
+      qrImage.src = qrCanvas;
+      await new Promise((resolve) => {
+        qrImage.onload = resolve;
+      });
+      ctx.drawImage(qrImage, canvas.width - 190, canvas.height - 190, 150, 150);
+
+      // Clean up
+      document.body.removeChild(qrContainer);
+
+      // Convert canvas to PDF
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'px',
         format: [canvas.width, canvas.height]
       });
 
-      // Add image to PDF
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-
-      // Download PDF
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save('digital-passport.pdf');
-    } catch (error) {
-      console.error('Error generating passport card:', error);
-      alert('Failed to generate passport card. Please try again.');
+
+    } catch (err: any) {
+      console.error('Error generating passport card:', err);
+      setError('Failed to generate passport card: ' + err.message);
     }
   };
 
@@ -239,81 +267,101 @@ export default function PassportStatusPage() {
       <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="container max-w-screen-lg mx-auto px-4 py-16">
           <div className="backdrop-blur-sm bg-white/5 rounded-3xl p-8 shadow-2xl border border-white/10">
-            <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent">
-              Passport Status
-            </h1>
+            <h1 className="text-3xl font-bold text-white mb-8 text-center">Passport Status</h1>
 
-            {!account ? (
-              <div className="text-center py-12">
-                <p className="text-xl text-slate-300">Please connect your wallet to continue</p>
-              </div>
-            ) : loading ? (
-              <div className="text-center py-12">
-                <p className="text-xl text-slate-300">Loading passport status...</p>
-              </div>
+            {loading ? (
+              <div className="text-center text-slate-300">Loading...</div>
             ) : error ? (
-              <div className="bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-300 p-4 rounded-xl">
-                Error: {error}
-              </div>
+              <div className="text-center text-red-400">{error}</div>
             ) : !applicationStatus.submitted ? (
-              <div className="text-center py-12">
-                <p className="text-xl text-slate-300">You have not applied for a passport yet</p>
+              <div className="text-center text-slate-300">
+                <p>You have not submitted a passport application yet.</p>
                 <button
                   onClick={() => router.push('/my-passport')}
-                  className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                  className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
-                  Apply Now
+                  Apply for Passport
                 </button>
               </div>
             ) : !applicationStatus.processed ? (
-              <div className="text-center py-12">
-                <p className="text-xl text-slate-300">Your passport application is being processed</p>
-                <p className="text-slate-400 mt-2">Please check back later</p>
+              <div className="text-center text-slate-300">
+                <p>Your passport application is being processed.</p>
+                <p className="mt-2">Please check back later.</p>
               </div>
             ) : passportInfo ? (
-              <div className="space-y-6">
-                <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-slate-300">
-                        <span className="text-blue-400">Passport Hash:</span>{" "}
-                        <span className="font-mono text-white">{passportInfo.hash}</span>
-                      </p>
-                      <p className="text-slate-300 mt-4">
-                        <span className="text-blue-400">Type:</span>{" "}
-                        <span className="text-white">{passportInfo.type}</span>
-                      </p>
-                      <p className="text-slate-300 mt-4">
-                        <span className="text-blue-400">Issued At:</span>{" "}
-                        <span className="text-white">
-                          {new Date(passportInfo.issuedAt * 1000).toLocaleString()}
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                    <h2 className="text-xl font-semibold text-white mb-4">Passport Details</h2>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-slate-400">Type:</span>
+                        <span className="ml-2 text-white">{passportInfo.type}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Issued On:</span>
+                        <span className="ml-2 text-white">
+                          {new Date(passportInfo.issuedAt * 1000).toLocaleDateString()}
                         </span>
-                      </p>
-                      <p className="text-slate-300 mt-4">
-                        <span className="text-blue-400">Issuer:</span>{" "}
-                        <span className="font-mono text-white">{passportInfo.issuer}</span>
-                      </p>
-                      <p className="text-slate-300 mt-4">
-                        <span className="text-blue-400">Status:</span>{" "}
-                        <span className={`${passportInfo.isRevoked ? 'text-red-400' : 'text-green-400'}`}>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Issuer:</span>
+                        <div className="ml-2 text-white break-all">
+                          {passportInfo.issuer}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Hash:</span>
+                        <div className="ml-2 text-white break-all">
+                          {passportInfo.hash}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Status:</span>
+                        <span className={`ml-2 ${passportInfo.isRevoked ? 'text-red-400' : 'text-green-400'}`}>
                           {passportInfo.isRevoked ? 'Revoked' : 'Active'}
                         </span>
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <button
-                        onClick={downloadPassportCard}
-                        className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                      >
-                        Download Passport Card
-                      </button>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                    <h2 className="text-xl font-semibold text-white mb-4">Passport QR Code</h2>
+                    <div className="flex justify-center">
+                      <div className="p-6 bg-white rounded-xl">
+                        <QRCodeSVG
+                          value={JSON.stringify({
+                            hash: passportInfo.hash,
+                            issuer: passportInfo.issuer,
+                            issueDate: new Date(passportInfo.issuedAt * 1000).toISOString(),
+                            status: passportInfo.isRevoked ? 'Revoked' : 'Active',
+                            type: passportInfo.type
+                          })}
+                          size={180}
+                          level="H"
+                          includeMargin={true}
+                          className="rounded-xl"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-center text-slate-400 text-sm">
+                      Scan this QR code to verify your passport
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-center">
+                  <button
+                    onClick={downloadPassportCard}
+                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Download Passport Card
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <p className="text-xl text-slate-300">No passport found</p>
+              <div className="text-center text-slate-300">
+                <p>No passport information found.</p>
               </div>
             )}
           </div>

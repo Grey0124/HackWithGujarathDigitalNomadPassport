@@ -55,7 +55,7 @@ function Header() {
       </div>
 
       <h1 className="text-3xl md:text-6xl font-bold tracking-tight mb-6 text-center bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent">
-        Digital Nomad Passport
+        Digital Nomad  Identity Passport
       </h1>
 
       <p className="text-slate-300 text-lg text-center max-w-2xl">

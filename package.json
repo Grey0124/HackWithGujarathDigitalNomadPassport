@@ -19,6 +19,8 @@
     "ethers": "^5.7.2",
     "ethr-did": "^3.0.35",
     "ethr-did-resolver": "^11.0.3",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "next": "14.1.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3",

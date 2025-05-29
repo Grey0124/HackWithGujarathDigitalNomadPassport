@@ -29,12 +29,21 @@ export default function ManageCredentialsPage() {
 
   useEffect(() => {
     if (account) {
+      setError(null);
+      setSuccess(null);
+      setIsLoading(true);
       checkIssuerStatus();
+    } else {
+      setError("Please connect your wallet");
+      setIsLoading(false);
     }
   }, [account]);
 
   const checkIssuerStatus = async () => {
     try {
+      setError(null);
+      setSuccess(null);
+      
       if (!account?.address) {
         setError("No wallet connected");
         return;
@@ -45,10 +54,7 @@ export default function ManageCredentialsPage() {
       
       // Check if user is an authorized issuer
       const isAuthorized = await contract.authorizedIssuers(account.address);
-      console.log("Is authorized:", isAuthorized, "Address:", account.address);
-      
       const suspended = await contract.suspendedIssuers(account.address);
-      console.log("Is suspended:", suspended);
       
       setIsAuthorizedIssuer(isAuthorized);
       setIsSuspended(suspended);
@@ -110,20 +116,29 @@ export default function ManageCredentialsPage() {
     try {
       setIsLoading(true);
       setError(null);
+      setSuccess(null);
 
-      if (!isAuthorizedIssuer) {
-        throw new Error("You are not an authorized issuer");
-      }
-
-      if (isSuspended) {
-        throw new Error("Your issuer account has been suspended");
+      if (!account?.address) {
+        throw new Error("No wallet connected");
       }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, AnchorABI.abi, provider);
 
+      // Recheck authorization status before fetching
+      const isAuthorized = await contract.authorizedIssuers(account.address);
+      const suspended = await contract.suspendedIssuers(account.address);
+
+      if (!isAuthorized) {
+        throw new Error("You are not an authorized issuer");
+      }
+
+      if (suspended) {
+        throw new Error("Your issuer account has been suspended");
+      }
+
       // Get all credentials issued by this issuer using HashAnchored event
-      const filter = contract.filters.HashAnchored(null, account?.address, null);
+      const filter = contract.filters.HashAnchored(null, account.address, null);
       const events = await contract.queryFilter(filter);
 
       const credentialsList = await Promise.all(
@@ -132,21 +147,20 @@ export default function ManageCredentialsPage() {
           const hash = event.args.hash;
           const isRevoked = await contract.hasRevoked(hash);
           
-          const credential = {
+          return {
             id: hash,
             type: event.args.pType,
             status: isRevoked ? "Revoked" : "Active",
             issuedAt: event.args.timestamp.toNumber(),
             holder: event.args.user,
           };
-          return credential;
         })
       );
 
       setCredentials(credentialsList.filter((cred): cred is Credential => cred !== null));
     } catch (err: any) {
       console.error("Error fetching credentials:", err);
-      setError("Failed to fetch credentials: " + err.message);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
