@@ -20,7 +20,7 @@ export default function UserNavbar() {
           </Link>
           
           <div className="flex items-center space-x-1">
-            <NavLink href="/user" pathname={pathname}>
+            <NavLink href="/" pathname={pathname}>
               Home
             </NavLink>
             <NavLink href="/my-passport" pathname={pathname}>

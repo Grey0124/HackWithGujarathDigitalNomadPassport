@@ -24,9 +24,6 @@ export default function Navbar() {
             <NavLink href="/about" pathname={pathname}>
               About
             </NavLink>
-            <NavLink href="/description" pathname={pathname}>
-              Description
-            </NavLink>
           </div>
         </div>
       </div>
