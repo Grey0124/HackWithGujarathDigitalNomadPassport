@@ -1,59 +1,133 @@
+# 🏛️ Digital Passport – Blockchain-Powered Identity for the Future
 
-![tw-banner](https://github.com/thirdweb-example/next-starter/assets/57885104/20c8ce3b-4e55-4f10-ae03-2fe4743a5ee8)
+## 🔥 Redefining Identity and Verification with Ethereum
 
-# thirdweb-next-starter
+**Digital Passport** is a decentralized identity and credential management system built on **Ethereum** that enables users to manage, verify, and present their digital identity securely. It empowers global digital nomads, institutions, and authorities to operate transparently, eliminating reliance on centralized entities.
 
-Starter template to build an onchain react native app with [thirdweb](https://thirdweb.com/) and [next](https://nextjs.org/).
 
-## Installation
+🔗 **[🔍 Explore Deployed Contract]https://thirdweb.com/sepolia/0xF2D180EbCa084136C85E6Fd2E9c34448cf16e370)**
+🗋 **Smart Contracts:** * `dinip/contracts/AnchorFinal3.sol`
 
-Install the template using [thirdweb create](https://portal.thirdweb.com/cli/create)
+🏛️ Stakeholders
+Role	Description
+👤 User	Applies for a digital passport by submitting KYC documents.
+🏢 Issuer	Authorized entity (e.g., government agency, DAO) that verifies KYC and issues passports.
+🔍 Verifier	Validates the authenticity and status of digital passports.
+👑 Owner	Deployer of the contract with administrative privileges (e.g., to manage issuers/verifiers).
 
-```bash
-  npx thirdweb create app --next
-```
 
-## Environment Variables
 
-To run this project, you will need to add the following environment variables to your .env file:
+---
 
-`CLIENT_ID`
+## 🚀 Key Features
 
-To learn how to create a client ID, refer to the [client documentation](https://portal.thirdweb.com/typescript/v5/client). 
+✅ **Digital Passport Issuance**
+Users can apply for a blockchain-anchored digital identity with verifiable document credentials.
 
-## Run locally
+✅ **Role-Based Access Control**
+Supports multiple roles: **Users**, **Issuers**, **Verifiers**, and a **Contract Owner** with governance authority.
 
-Install dependencies
+✅ **KYC and Document Verification**
+Applicants submit KYC documents, which are reviewed by Issuers who verify and anchor the identity.
 
-```bash
-yarn
-```
+✅ **Audit Logs & Transparency**
+Every application, issuance, revocation, and verification is logged immutably.
 
-Start development server
+✅ **Credential Revocation and Rotation**
+Hash-based passport records can be revoked or rotated to ensure continued trust and security.
 
-```bash
-yarn dev
-```
+---
 
-Create a production build
+## 💡 How It Works
 
-```bash
-yarn build
-```
+### ① Application Submission (User)
 
-Preview the production build
+* Users connect their wallet and submit a KYC form.
+* Upload required documents to IPFS (via Pinata).
+* A hashed record of documents is sent to the contract.
 
-```bash
-yarn start
-```
+### ② Issuer Review and Approval
 
-## Resources
+* Issuers review document hashes.
+* Upon approval, a passport hash is generated and anchored on-chain.
 
-- [Documentation](https://portal.thirdweb.com/typescript/v5)
-- [Templates](https://thirdweb.com/templates)
-- [YouTube](https://www.youtube.com/c/thirdweb)
-- [Blog](https://blog.thirdweb.com)
+### ③ Verifier Validation
 
-## Need help?
+* Verifiers can validate a passport using its hash.
+* The contract returns anchor status, issuer info, and whether the passport is revoked.
 
-For help or feedback, please [visit our support site](https://thirdweb.com/support)
+### ④ Passport Rotation & Revocation
+
+* Users may rotate their hash (e.g., for privacy or compromise).
+* Issuers may revoke a passport if necessary.
+
+---
+
+## 🏠 Web App Walkthrough
+
+### 🔐 Login & Role Detection
+
+* Connect your wallet via MetaMask.
+* App dynamically routes you to the correct portal based on your role (User, Issuer, Verifier).
+
+### 👤 User Dashboard
+
+* Submit KYC and documents.
+* View application status.
+* Download blockchain-verified passport PDF along with QR code which contains passport hash.
+
+### 🏛️ Issuer Portal
+
+* View pending KYC applications.
+* Verify submitted documents.
+* Approve or reject applications.
+
+### 🔍 Verifier Panel
+
+* Enter a passport hash.
+* Can obtain passport hash by scanning user qr code
+* Instantly validate anchor status, revocation, issuer, and issuance timestamp.
+
+---
+
+## 🚪 Roles & Permissions
+
+| Role         | Permissions                                           |
+| ------------ | ----------------------------------------------------- |
+| **User**     | Submit application, rotate passport hash              |
+| **Issuer**   | Approve/reject applications, issue & revoke passports |
+| **Verifier** | Query and verify passports                            |
+| **Owner**    | Add/remove/suspend issuers and verifiers              |
+
+---
+
+## 💮 Tech Stack
+
+* **Blockchain:** Ethereum Sepolia Testnet (Solidity, Ethers.js)
+* **Frontend:** Next.js + TailwindCSS + TypeScript
+* **Contracts:** Thirdweb + Hardhat + AnchorFinal3.sol
+* **Storage:** IPFS (via Pinata)
+* **Wallets:** MetaMask, WalletConnect
+
+---
+
+## 📅 Use Cases
+
+* Cross-border identity management
+* Digital nomad credentials
+* University/Employment credentials
+* Public certificate & licensing
+
+---
+
+## ✨ Join the Digital Identity Revolution
+
+Digital Passport empowers individuals and organizations to take control of identity with transparency, security, and trust.
+
+🚀 Try the app and experience decentralized identity today!
+
+
+NEXT_PUBLIC_TEMPLATE_CLIENT_ID=350d5db03a6b261b3f993f36e893d31a
+NEXT_PUBLIC_TEMPLATE_CLIENT_SECRET=HiCO8yyxW2U9C5H_n5aDG1Kdg22fmCeqCP5owk268rvM53sL3cIaBNRnZJdvCOJqRdrD0D7lhXnLKUHWd88Vog
+
+
