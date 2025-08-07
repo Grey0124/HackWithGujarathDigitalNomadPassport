@@ -127,7 +127,5 @@ Digital Passport empowers individuals and organizations to take control of ident
 🚀 Try the app and experience decentralized identity today!
 
 
-NEXT_PUBLIC_TEMPLATE_CLIENT_ID=350d5db03a6b261b3f993f36e893d31a
-NEXT_PUBLIC_TEMPLATE_CLIENT_SECRET=HiCO8yyxW2U9C5H_n5aDG1Kdg22fmCeqCP5owk268rvM53sL3cIaBNRnZJdvCOJqRdrD0D7lhXnLKUHWd88Vog
 
 
